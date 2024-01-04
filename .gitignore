@@ -1,0 +1,4 @@
+.vscode
+env
+frontend/.vscode
+frontend/node_modules
