@@ -2,3 +2,6 @@
 env
 frontend/.vscode
 frontend/node_modules
+**/__pycache__
+config
+data
