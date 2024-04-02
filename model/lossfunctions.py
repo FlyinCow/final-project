@@ -3,9 +3,8 @@ import torch.nn as nn
 
 
 class L1DistanceLoss(nn.Module):
-    def __init__(self, args):
+    def __init__(self):
         super(L1DistanceLoss, self).__init__()
-        self.args = args
         self.word_pair_dims = (1, 2)
 
     def forward(self, predictions, label_batch, length_batch):
@@ -21,14 +20,13 @@ class L1DistanceLoss(nn.Module):
             normalized_loss_per_sent = loss_per_sent / squared_lengths
             batch_loss = torch.sum(normalized_loss_per_sent) / total_sents
         else:
-            batch_loss = torch.tensor(0.0, device=self.args["device"])
+            batch_loss = torch.tensor(0.0, device="cuda")
         return batch_loss, total_sents
 
 
 class L1DepthLoss(nn.Module):
-    def __init__(self, args):
+    def __init__(self):
         super(L1DepthLoss, self).__init__()
-        self.args = args
         self.word_dim = 1
 
     def forward(self, predictions, label_batch, length_batch):
@@ -43,5 +41,10 @@ class L1DepthLoss(nn.Module):
             normalized_loss_per_sent = loss_per_sent / length_batch.float()
             batch_loss = torch.sum(normalized_loss_per_sent) / total_sents
         else:
-            batch_loss = torch.tensor(0.0, device=self.args["device"])
+            batch_loss = torch.tensor(0.0, device="cuda")
         return batch_loss, total_sents
+
+
+class ContrasiveLoss(nn.Module):
+    def __init__(self) -> None:
+        super(ContrasiveLoss, self).__init__()

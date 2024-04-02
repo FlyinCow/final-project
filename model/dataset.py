@@ -132,7 +132,8 @@ def padding_collate_fn(batch_sentence):
 
     # 手动pad labels
     label_shape = batch_sentence[0][1].shape
-    lengths = [torch.tensor(x[0]["words_count"], device="cuda") for x in batch_sentence]
+    # lengths = [torch.tensor(x[0]["words_count"], device="cuda") for x in batch_sentence]
+    lengths = torch.tensor([x[0]["words_count"] for x in batch_sentence], device="cuda")
     maxlen = int(max(lengths))
     # depth->[D]; distance->[D,D]
     label_max_shape = [maxlen for x in label_shape]
