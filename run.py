@@ -6,7 +6,7 @@ from model.models import PretrainedModel
 from model.dataset import ConllDataset, padding_collate_fn
 from model.tasks import DistanceTask, DepthTask
 from model.probe import DistanceProbe, DepthProbe
-from model.loss import L1DistanceLoss, L1DepthLoss
+from model.lossfunctions import L1DistanceLoss, L1DepthLoss
 
 dataset_path = {
     "news": {
@@ -21,6 +21,12 @@ dataset_path = {
     },
 }
 
+# datasets = {}
+
+# for domain, paths in dataset_path.items():
+#     for partion, path in paths.items():
+#         datasets[domain][partion] = ConllDataset(dataset_path[domain][partion])
+
 dataset = ConllDataset(dataset_path["news"]["test"])
 dataset.set_labels(DistanceTask())
 
@@ -28,10 +34,10 @@ dataloader = DataLoader(dataset, batch_size=5, collate_fn=padding_collate_fn)
 
 bert_base_chinese_model = PretrainedModel("bert-base-chinese")
 
-probe = DistanceProbe(300, 768)
+distance_probe = DistanceProbe(300, 768)
 
-loss_function = L1DistanceLoss()
-optimizer = torch.optim.Adam(probe.parameters(), lr=0.001)
+loss = L1DistanceLoss()
+optimizer = torch.optim.Adam(distance_probe.parameters(), lr=0.001)
 
 # training loop
 for sentences, words, word_pos, word_len, lengths, labels in tqdm(
@@ -41,8 +47,10 @@ for sentences, words, word_pos, word_len, lengths, labels in tqdm(
     # 1. 从待探测的模型获取词向量
     embs = bert_base_chinese_model(sentences, word_pos, word_len, lengths)
     # 2. 使用探针获取距离/深度
-    predictions = probe(embs)
+    predictions = distance_probe(embs)
     # 3. 计算Loss, 反向传播
-    batch_loss = loss_function(predictions, labels, lengths)
+    batch_loss, count = loss(predictions, labels, lengths)
     batch_loss.backward()
     optimizer.step()
+
+# evaluate
