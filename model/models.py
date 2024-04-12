@@ -105,11 +105,11 @@ class DecayModel(nn.Module):
         return decay_aggregate
 
 
-class PretrainedModel(nn.Module):
+class TransformersPretrainedModel(nn.Module):
     """使用预训练语言模型从原始句子生成字向量，然后将词的字向量取平均作为词向量"""
 
     def __init__(self, model_used="bert-base-chinese"):
-        super(PretrainedModel, self).__init__()
+        super(TransformersPretrainedModel, self).__init__()
         # todo: 测试除了`bert-base-chinese`之外的其它模型
         self.tokenizer = AutoTokenizer.from_pretrained(model_used)
         self.pretrained_model = AutoModel.from_pretrained(model_used)
@@ -117,9 +117,17 @@ class PretrainedModel(nn.Module):
         self.pretrained_model.eval()
 
     def forward(self, sentences, word_pos, word_len, lengths):
-        model_input = self.tokenizer(sentences, return_tensors="pt", padding=True).to(
-            "cuda"
-        )
+        # todo: 处理[unk]和英文字符
+        # model_input = self.tokenizer(sentences, return_tensors="pt", padding=True).to(
+        #     "cuda"
+        # )
+        model_input = {"input_ids": []}
+        for i, sent in enumerate(sentences):
+            model_input["input_ids"].append(
+                self.tokenizer.convert_tokens_to_ids([c for c in sent])
+            )
+            if self.tokenizer.unk_token_id in model_input["input_ids"]:
+                lengths[i] = 0
         # todo: check有没有用
         with torch.no_grad():
             model_output = self.pretrained_model(**model_input)
@@ -127,10 +135,12 @@ class PretrainedModel(nn.Module):
             output = []
             # todo: 获取其他层的词向量
             char_embs = model_output.last_hidden_state
+
             for i, char_embs_i in enumerate(char_embs):
                 word_len_i = word_len[i][: lengths[i]]
+                word_pos_i = word_pos[i][: lengths[i]]
                 grouped = torch.split(
-                    char_embs_i[1 : 1 + len(sentences[i])],  # 第一个为[CLS]
+                    char_embs_i[: len(sentences[i])],
                     word_len_i.tolist(),
                 )
                 # torch.stack(list(map(partial(torch.sum, dim=0), grouped))) / word_len_i

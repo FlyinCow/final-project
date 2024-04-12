@@ -8,6 +8,7 @@ class L1DistanceLoss(nn.Module):
         self.word_pair_dims = (1, 2)
 
     def forward(self, predictions, label_batch, length_batch):
+        # 去掉padding部分
         labels_1s = (label_batch != -1).float()
         predictions_masked = predictions * labels_1s
         labels_masked = label_batch * labels_1s
@@ -31,9 +32,11 @@ class L1DepthLoss(nn.Module):
 
     def forward(self, predictions, label_batch, length_batch):
         total_sents = torch.sum(length_batch != 0).float()
+        # 去掉padding部分
         labels_1s = (label_batch != -1).float()
         predictions_masked = predictions * labels_1s
         labels_masked = label_batch * labels_1s
+
         if total_sents > 0:
             loss_per_sent = torch.sum(
                 torch.abs(predictions_masked - labels_masked), dim=self.word_dim
@@ -46,5 +49,10 @@ class L1DepthLoss(nn.Module):
 
 
 class ContrasiveLoss(nn.Module):
+    # todo: 实现对比损失
     def __init__(self) -> None:
         super(ContrasiveLoss, self).__init__()
+
+    def forward(self, predictions, label_batch, length_batch):
+
+        pass

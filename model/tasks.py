@@ -3,13 +3,18 @@ import torch
 
 class Task:
     @staticmethod
-    def labels(sentences):
+    def labels(sentence):
+        """为单个句子的每个词返回作为任务label的Tensor"""
         raise NotImplementedError
 
 
+# MARK: DepthTask
 class DepthTask(Task):
+    """深度探测任务"""
+
     @staticmethod
     def labels(sentence):
+        """为单个句子的每个词生成在树上的深度"""
         # {
         #     "raw_sentence": raw_sentence,
         #     "words_count": word_count,
@@ -46,11 +51,13 @@ class DepthTask(Task):
             depths[word_id] = depths[head_indexs[word_id]] + 1
 
 
+# MARK: DistanceTask
 class DistanceTask(Task):
-    # todo: 计算词间距离
+    """距离探测任务"""
 
     @staticmethod
     def labels(sentences):
+        """为单个句子生成距离矩阵`D[i][j]=distance(i,j)`"""
         # {
         #     "raw_sentence": raw_sentence,
         #     "words_count": word_count,
@@ -99,3 +106,9 @@ class DistanceTask(Task):
             distances[i][j] = distances[i][j_parent] + 1
             distances[j][i] = distances[i][j_parent] + 1
             return
+
+
+class EmptyTask(Task):
+    @staticmethod
+    def labels(sentence):
+        return torch.zeros(sentence["words_count"])

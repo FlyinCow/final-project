@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 from tqdm import tqdm
 import torch
 import torch.nn as nn
+from .tasks import Task
 
 # todo: 测试英文数据集
 
@@ -14,6 +15,8 @@ class ConllDataset(Dataset):
     def __init__(self, data_path: str):
         self.sentencese = []
         self.labels = []
+        self.current_line_no = 0
+        self.start_lines = []
         lines = (x for x in open(data_path))
         for buf in tqdm(
             self.generate_lines_for_sent(lines), desc="[processing conll data]"
@@ -25,8 +28,8 @@ class ConllDataset(Dataset):
             self.sentencese.append(
                 self.generate_sentence_obj_from_conll_lines(conll_lines)
             )
-            # sentence_obj = self.sentence_class(*zip(*conll_lines))
-            # self.sentencese.append(sentence_obj)
+
+            self.start_lines.append(self.current_line_no)
 
     def generate_lines_for_sent(self, lines):
         """
@@ -34,6 +37,7 @@ class ConllDataset(Dataset):
         """
         buf = []
         for line in lines:
+            self.current_line_no += 1
             if line.startswith("#"):
                 continue
             if not line.strip():
@@ -90,9 +94,11 @@ class ConllDataset(Dataset):
         #     head_indexs,
         #     depths,
         # )
-
+        replace_map = {"“": '"', "”": '"', "。": ".", "？": "?"}
+        for k, v in replace_map.items():
+            raw_sentence = raw_sentence.replace(k, v)
         return {
-            "raw_sentence": raw_sentence,
+            "raw_sentence": raw_sentence.lower(),
             "words_count": word_count,
             "char_count": char_count,
             "root_idx": root_idx,
@@ -103,7 +109,7 @@ class ConllDataset(Dataset):
             # "depths": depths,
         }
 
-    def set_labels(self, task):
+    def set_labels(self, task: Task):
         self.labels.clear()
         for sentence in tqdm(self.sentencese, desc="[computing labels]"):
             self.labels.append(task.labels(sentence))
@@ -120,7 +126,6 @@ class ConllDataset(Dataset):
         return self.sentencese[index], self.labels[index]
 
 
-# note: collate_fn check
 def padding_collate_fn(batch_sentence):
     # batch_sentence:[(sentence,label),...]
     words = [x[0]["raw_words"] for x in batch_sentence]
