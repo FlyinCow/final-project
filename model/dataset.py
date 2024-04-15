@@ -13,7 +13,7 @@ class ConllDataset(Dataset):
     """
 
     def __init__(self, data_path: str):
-        self.sentencese = []
+        self.sentences = []
         self.labels = []
         self.current_line_no = 0
         self.start_lines = []
@@ -25,7 +25,7 @@ class ConllDataset(Dataset):
             for line in buf:
                 conll_lines.append(line.strip().split("\t"))
 
-            self.sentencese.append(
+            self.sentences.append(
                 self.generate_sentence_obj_from_conll_lines(conll_lines)
             )
 
@@ -110,20 +110,35 @@ class ConllDataset(Dataset):
         }
 
     def set_labels(self, task: Task):
+        """根据任务计算label"""
         self.labels.clear()
-        for sentence in tqdm(self.sentencese, desc="[computing labels]"):
+        for sentence in tqdm(self.sentences, desc="[computing labels]"):
             self.labels.append(task.labels(sentence))
         return self
 
+    def save_labels(self, path: str):
+        """将label存在磁盘上"""
+        assert len(self.labels) != 0, "No labels."
+        torch.save(self.labels, path)
+
+    def load_labels(self, path: str):
+        """从磁盘上读取label"""
+        self.labels = torch.load(path)
+        assert len(self.sentences) == len(
+            self.labels
+        ), "Label count should be {}, got {}.".format(
+            len(self.sentences), len(self.labels)
+        )
+
     def __len__(self):
-        return len(self.sentencese)
+        return len(self.sentences)
 
     def __getitem__(self, index):
         if len(self.labels) == 0:
             raise ValueError(
                 "Call `ConllDataset.sel_labels` first to set labels according to task."
             )
-        return self.sentencese[index], self.labels[index]
+        return self.sentences[index], self.labels[index]
 
 
 def padding_collate_fn(batch_sentence):
